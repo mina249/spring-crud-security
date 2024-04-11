@@ -7,13 +7,47 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.sql.DataSource;
 
 @Configuration
 @EnableWebSecurity
 public class CustomerConfiguration {
+
+
+
     @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        http.authorizeHttpRequests(configurer ->
+                        configurer
+                                .requestMatchers("/customers/list**").hasRole("EMPLOYEE")
+                                .requestMatchers("/customers/showForm**").hasAnyRole("MANAGER","EMPLOYEE")
+                                .requestMatchers("/customers/update**").hasRole("MANAGER")
+                                .requestMatchers("/customers/delete**").hasRole("ADMIN")
+                                .anyRequest().authenticated()
+                )
+                .formLogin(form ->
+                        form
+                                .loginPage("/loginPage")
+                                .loginProcessingUrl("/authenticateTheUser")
+                                .permitAll()
+                )
+                .logout(logout-> logout.permitAll()
+                ).exceptionHandling(configurer ->
+                        configurer.accessDeniedPage("/access-denied")
+                );
+
+        return http.build();
+    }
+    @Bean
+    public UserDetailsManager userDetailsManager(DataSource dataSource){
+        return new JdbcUserDetailsManager(dataSource);
+    }
+   /* @Bean
     public InMemoryUserDetailsManager userDetailsManager(){
         UserDetails mina = User.builder()
                 .username("Mina")
@@ -31,34 +65,6 @@ public class CustomerConfiguration {
                 .roles("EMPLOYEE")
                 .build();
         return new InMemoryUserDetailsManager(mina,ahmed,yehia);
-    }
-
-   /* @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(configure ->
-                configure.anyRequest().authenticated()
-         )
-                .formLogin(form->
-                        form.loginPage("/loginPage")
-                                .loginProcessingUrl("/authenticateUser")
-                                .permitAll()
-                        );
-        return http.build();
     }*/
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.authorizeHttpRequests(configurer ->
-                        configurer
-                                .anyRequest().authenticated()
-                )
-                .formLogin(form ->
-                        form
-                                .loginPage("/loginPage")
-                                .loginProcessingUrl("/authenticateTheUser")
-                                .permitAll()
-                );
-
-        return http.build();
-    }
 }
